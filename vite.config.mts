@@ -8,6 +8,16 @@ import svgr from 'vite-plugin-svgr';
 export default defineConfig(() => {
   return {
     plugins: [react(), createBlockletPlugin(), svgr()],
+    server: {
+      proxy: {
+        '/api': {
+          target: 'http://127.0.0.1:8092',
+          changeOrigin: true,
+          secure: false,
+          rewrite: (path) => path,
+        },
+      },
+    },
     build: {
       // 禁止 preload 可以解决 js 的请求没有 referer 的问题
       cssCodeSplit: false,
