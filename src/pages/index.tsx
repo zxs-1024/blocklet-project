@@ -1,5 +1,6 @@
 import { Box, CircularProgress } from '@mui/material';
 import { useCallback, useEffect, useState } from 'react';
+import toast, { Toaster } from 'react-hot-toast';
 
 import ProfileCard from '../components/profile-card';
 import type { Profile } from '../types/profile';
@@ -10,7 +11,8 @@ export default function HomePage() {
 
   const fetchProfile = async () => {
     try {
-      const response = await fetch('/api/profile');
+      const id = 1;
+      const response = await fetch(`/api/profile/${id}`);
       const data = await response.json();
       setProfile(data);
     } catch (error) {
@@ -29,11 +31,21 @@ export default function HomePage() {
         },
         body: JSON.stringify(updatedProfile),
       });
+
       const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error);
+      }
+
       if (data.success) {
         setProfile(updatedProfile);
+        toast.success(data.message);
+      } else {
+        throw new Error(data.error);
       }
     } catch (error) {
+      toast.error(error.message || '用户信息更新失败');
       console.error('Error saving profile:', error);
     }
   }, []);
@@ -52,6 +64,7 @@ export default function HomePage() {
 
   return (
     <Box sx={{ bgcolor: '#1a1b2e', minHeight: '100vh' }}>
+      <Toaster />
       {profile && <ProfileCard profile={profile} onSave={handleSaveProfile} />}
     </Box>
   );

@@ -19,16 +19,53 @@ db.exec(`
   )
 `);
 
+// 验证函数
+const validateProfile = (profile: any) => {
+  // 验证姓名
+  if (!profile.username?.trim()) {
+    return { isValid: false, error: '姓名不能为空' };
+  }
+  if (profile.username.length < 2) {
+    return { isValid: false, error: '姓名至少需要2个字符' };
+  }
+
+  // 验证手机号码
+  if (!profile.phone?.trim()) {
+    return { isValid: false, error: '手机号码不能为空' };
+  }
+  const phoneRegex = /^1[3-9]\d{9}$/;
+  if (!phoneRegex.test(profile.phone)) {
+    return { isValid: false, error: '请输入有效的手机号码' };
+  }
+
+  // 验证邮箱
+  const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
+  if (profile.email && !emailRegex.test(profile.email)) {
+    return { isValid: false, error: '请输入有效的邮箱地址' };
+  }
+
+  return { isValid: true };
+};
+
+// 验证函数
+const validateProfileId = (profile: any) => {
+  if (!profile.id) {
+    return { isValid: false, error: '用户id不能为空' };
+  }
+  return { isValid: true };
+};
+
 // 获取用户 Profile
-router.get('/', (_req, res) => {
-  const profile = db.prepare('SELECT * FROM profile ORDER BY id DESC LIMIT 1').get();
-  res.json(
+router.get('/:id', (req, res) => {
+  // 参数校验
+  const validation = validateProfileId(req.params);
+  if (!validation.isValid) {
+    return res.status(400).json({ error: validation.error });
+  }
+  const profile = db.prepare('SELECT * FROM profile WHERE id = ?').get(req.params.id);
+  return res.json(
     profile || {
-      username: 'Default User',
-      email: 'user@example.com',
-      phone: '',
-      avatar: '',
-      bio: '',
+      error: '用户信息不存在',
     },
   );
 });
@@ -37,13 +74,30 @@ router.get('/', (_req, res) => {
 router.put('/', (req, res) => {
   const profile = req.body;
 
-  const stmt = db.prepare(`
-    INSERT OR REPLACE INTO profile (username, email, phone, avatar, bio, updated_at)
-    VALUES (@username, @email, @phone, @avatar, @bio, CURRENT_TIMESTAMP)
-  `);
+  // 参数校验
+  const validation = validateProfile(profile);
+  if (!validation.isValid) {
+    return res.status(400).json({ error: validation.error });
+  }
 
-  const result = stmt.run(profile);
-  res.json({ success: true, id: result.lastInsertRowid });
+  if (profile.id) {
+    // 更新用户
+    const updateStmt = db.prepare(`
+      UPDATE profile
+      SET username = @username, email = @email, phone = @phone, avatar = @avatar, bio = @bio, updated_at = CURRENT_TIMESTAMP
+      WHERE id = @id
+    `);
+    updateStmt.run(profile);
+    return res.json({ success: true, message: '用户信息更新成功' });
+  }
+
+  // 创建用户
+  const insertStmt = db.prepare(`
+      INSERT INTO profile (username, email, phone, avatar, bio, created_at, updated_at)
+      VALUES (@username, @email, @phone, @avatar, @bio, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    `);
+  insertStmt.run(profile);
+  return res.json({ success: true, message: '用户创建成功' });
 });
 
 export default router;

@@ -90,6 +90,12 @@ const SaveButton = styled(Button)({
   },
 });
 
+interface ValidationErrors {
+  username?: string;
+  phone?: string;
+  email?: string;
+}
+
 interface ProfileCardProps {
   profile: Profile;
   onSave: (profile: Profile) => Promise<void>;
@@ -98,15 +104,52 @@ interface ProfileCardProps {
 export default function ProfileCard({ profile, onSave }: ProfileCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedProfile, setEditedProfile] = useState<Profile>(profile);
+  const [errors, setErrors] = useState<ValidationErrors>({});
+
+  const validateForm = (): boolean => {
+    const newErrors: ValidationErrors = {};
+
+    // 验证姓名
+    if (!editedProfile.username.trim()) {
+      newErrors.username = '姓名不能为空';
+    } else if (editedProfile.username.length < 2) {
+      newErrors.username = '姓名至少需要2个字符';
+    }
+
+    // 验证手机号码
+    if (!editedProfile.phone.trim()) {
+      newErrors.phone = '手机号码不能为空';
+    } else if (editedProfile.phone) {
+      const phoneRegex = /^1[3-9]\d{9}$/;
+      if (!phoneRegex.test(editedProfile.phone)) {
+        newErrors.phone = '请输入有效的手机号码';
+      }
+    }
+
+    // 验证邮箱
+    if (editedProfile.email.trim()) {
+      const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
+      if (!emailRegex.test(editedProfile.email)) {
+        newErrors.email = '请输入有效的邮箱地址';
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleEdit = () => {
     setEditedProfile(profile);
+    setErrors({});
     setIsEditing(true);
   };
 
   const handleSave = async () => {
-    await onSave(editedProfile);
-    setIsEditing(false);
+    if (validateForm()) {
+      await onSave(editedProfile);
+      setIsEditing(false);
+      setErrors({});
+    }
   };
 
   const handleChange = (field: keyof Profile) => (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -114,6 +157,13 @@ export default function ProfileCard({ profile, onSave }: ProfileCardProps) {
       ...prev,
       [field]: event.target.value,
     }));
+    // 清除对应字段的错误信息
+    if (errors[field as keyof ValidationErrors]) {
+      setErrors((prev) => ({
+        ...prev,
+        [field]: undefined,
+      }));
+    }
   };
 
   return (
@@ -143,9 +193,30 @@ export default function ProfileCard({ profile, onSave }: ProfileCardProps) {
 
       {isEditing ? (
         <Box>
-          <StyledTextField label="姓名" value={editedProfile.username} onChange={handleChange('username')} />
-          <StyledTextField label="电话号码" value={editedProfile.phone} onChange={handleChange('phone')} />
-          <StyledTextField label="Email" value={editedProfile.email} onChange={handleChange('email')} type="email" />
+          <StyledTextField
+            label="姓名"
+            value={editedProfile.username}
+            onChange={handleChange('username')}
+            error={!!errors.username}
+            helperText={errors.username}
+            required
+          />
+          <StyledTextField
+            label="手机号码"
+            value={editedProfile.phone}
+            onChange={handleChange('phone')}
+            error={!!errors.phone}
+            helperText={errors.phone}
+            required
+          />
+          <StyledTextField
+            label="Email"
+            value={editedProfile.email}
+            onChange={handleChange('email')}
+            error={!!errors.email}
+            helperText={errors.email}
+            type="email"
+          />
           <StyledTextField label="个人介绍" value={editedProfile.bio} onChange={handleChange('bio')} />
           <Box mt={4}>
             <SaveButton onClick={handleSave}>保存</SaveButton>
@@ -154,7 +225,7 @@ export default function ProfileCard({ profile, onSave }: ProfileCardProps) {
       ) : (
         <Box>
           <StyledTextField label="姓名" value={profile.username} disabled />
-          <StyledTextField label="电话号码" value={profile.phone} disabled />
+          <StyledTextField label="手机号码" value={profile.phone} disabled />
           <StyledTextField label="Email" value={profile.email} disabled />
           <StyledTextField label="个人介绍" value={profile.bio} disabled />
         </Box>
