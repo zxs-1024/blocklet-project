@@ -5,8 +5,16 @@ import toast, { Toaster } from 'react-hot-toast';
 import ProfileCard from '../components/profile-card';
 import type { Profile } from '../types/profile';
 
+const defaultProfile: Profile = {
+  username: '',
+  email: '',
+  phone: '',
+  avatar: '',
+  bio: '',
+};
+
 export default function HomePage() {
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [profile, setProfile] = useState<Profile>(defaultProfile);
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async () => {
@@ -14,7 +22,9 @@ export default function HomePage() {
       const id = 1;
       const response = await fetch(`/api/profile/${id}`);
       const data = await response.json();
-      setProfile(data);
+      if (!data.error) {
+        setProfile(data);
+      }
     } catch (error) {
       console.error('Error fetching profile:', error);
     } finally {
@@ -39,7 +49,7 @@ export default function HomePage() {
       }
 
       if (data.success) {
-        setProfile(updatedProfile);
+        setProfile({ ...updatedProfile, id: data.id });
         toast.success(data.message);
       } else {
         throw new Error(data.error);

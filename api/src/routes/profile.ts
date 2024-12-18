@@ -1,10 +1,22 @@
 import Database from 'better-sqlite3';
 import { Router } from 'express';
+import fs from 'fs';
 import path from 'path';
 
 const router = Router();
-const db = new Database(path.join(__dirname, '../../data/profile.db'));
+const dbPath = path.join(__dirname, '../../data/profile.db');
 
+// 检查数据库文件是否存在，如果不存在则创建
+const dbDir = path.dirname(dbPath);
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
+}
+if (!fs.existsSync(dbPath)) {
+  fs.writeFileSync(dbPath, '');
+}
+
+// 连接数据库
+const db = new Database(dbPath);
 // 创建用户表
 db.exec(`
   CREATE TABLE IF NOT EXISTS profile (
@@ -79,7 +91,6 @@ router.put('/', (req, res) => {
   if (!validation.isValid) {
     return res.status(400).json({ error: validation.error });
   }
-
   if (profile.id) {
     // 更新用户
     const updateStmt = db.prepare(`
@@ -87,8 +98,14 @@ router.put('/', (req, res) => {
       SET username = @username, email = @email, phone = @phone, avatar = @avatar, bio = @bio, updated_at = CURRENT_TIMESTAMP
       WHERE id = @id
     `);
-    updateStmt.run(profile);
-    return res.json({ success: true, message: '用户信息更新成功' });
+    const updateParams = {
+      ...profile,
+      email: profile.email || null,
+      avatar: profile.avatar || null,
+      bio: profile.bio || null,
+    };
+    updateStmt.run(updateParams);
+    return res.json({ success: true, id: profile.id, message: '用户信息更新成功' });
   }
 
   // 创建用户
@@ -96,8 +113,15 @@ router.put('/', (req, res) => {
       INSERT INTO profile (username, email, phone, avatar, bio, created_at, updated_at)
       VALUES (@username, @email, @phone, @avatar, @bio, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
     `);
-  insertStmt.run(profile);
-  return res.json({ success: true, message: '用户创建成功' });
+  const insertParams = {
+    ...profile,
+    email: profile.email || null,
+    avatar: profile.avatar || null,
+    bio: profile.bio || null,
+  };
+  const result = insertStmt.run(insertParams);
+
+  return res.json({ success: true, message: '用户创建成功', id: result.lastInsertRowid });
 });
 
 export default router;

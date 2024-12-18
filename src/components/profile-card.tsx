@@ -110,16 +110,16 @@ export default function ProfileCard({ profile, onSave }: ProfileCardProps) {
     const newErrors: ValidationErrors = {};
 
     // 验证姓名
-    if (!editedProfile.username.trim()) {
+    if (!editedProfile?.username?.trim()) {
       newErrors.username = '姓名不能为空';
-    } else if (editedProfile.username.length < 2) {
+    } else if (editedProfile?.username?.length < 2) {
       newErrors.username = '姓名至少需要2个字符';
     }
 
     // 验证手机号码
-    if (!editedProfile.phone.trim()) {
+    if (!editedProfile?.phone?.trim()) {
       newErrors.phone = '手机号码不能为空';
-    } else if (editedProfile.phone) {
+    } else if (editedProfile?.phone) {
       const phoneRegex = /^1[3-9]\d{9}$/;
       if (!phoneRegex.test(editedProfile.phone)) {
         newErrors.phone = '请输入有效的手机号码';
@@ -127,7 +127,7 @@ export default function ProfileCard({ profile, onSave }: ProfileCardProps) {
     }
 
     // 验证邮箱
-    if (editedProfile.email.trim()) {
+    if (editedProfile?.email?.trim()) {
       const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
       if (!emailRegex.test(editedProfile.email)) {
         newErrors.email = '请输入有效的邮箱地址';
